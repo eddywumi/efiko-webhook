@@ -1,30 +1,32 @@
-// server.js
-const express = require("express");
+import express from "express";
+
 const app = express();
-const port = 3000;
-
-const VERIFY_TOKEN = "EFIKO_WHATSAPP_2025_SECRET";
-
 app.use(express.json());
 
-app.get("/webhook/whatsapp", (req, res) => {
+// Health check
+app.get("/", (req, res) => res.send("Efiko webhook is live"));
+
+// Verification endpoint for Meta (Facebook/WhatsApp)
+app.get("/webhook", (req, res) => {
+  const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "dev_verify_token";
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
 
   if (mode === "subscribe" && token === VERIFY_TOKEN) {
-    console.log("Webhook verified ✅");
-    res.status(200).send(challenge);
-  } else {
-    res.sendStatus(403);
+    console.log("WEBHOOK_VERIFIED");
+    return res.status(200).send(challenge);
   }
+
+  return res.sendStatus(403);
 });
 
-app.post("/webhook/whatsapp", (req, res) => {
-  console.log("🔔 Incoming Webhook:", JSON.stringify(req.body, null, 2));
+// Messages/events endpoint
+app.post("/webhook", (req, res) => {
+  console.log("Incoming event:", JSON.stringify(req.body, null, 2));
   res.sendStatus(200);
 });
 
-app.listen(port, () => {
-  console.log(`✅ Efiko Webhook listening on port ${port}`);
-});
+// IMPORTANT for Render: must use Render's injected port
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Webhook listening on port ${PORT}`));
